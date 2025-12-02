@@ -198,3 +198,48 @@ class Acq400UI:
                 continue
             parser._add_action(action)
         return parser
+
+
+class ArgTypes:
+    @staticmethod
+    def list_of_ints(value):
+        """Converts 1,2,3 to [1,2,3]"""
+        return list(map(int, value.split(',')))
+    
+    @staticmethod
+    def list_of_strings(value):
+        """Converts a,b,c to [a,b,c]"""
+        return value.split(',')
+    
+    @staticmethod
+    def list_of_channels(value):
+        """Converts 1,2,6-8 to [1,2,6,7,8]"""
+        if value.lower() == 'all': return 'all'
+        channels = []
+        for chan in value.split(','):
+            if '-' in chan:
+                start, end = map(int, chan.split('-'))
+                channels.extend(list(range(start, end + 1)))
+            else:
+                channels.append(int(chan))
+        return channels
+
+    @staticmethod
+    def int_with_unit(value):
+        """Converts values with units to intergers"""
+        units = {
+            "k": 1e3,
+            "M": 1e6,
+            "G": 1e9,
+            "kB": 1024,
+            "MB": 1024**2,
+            "GB": 1024**3,
+        }
+
+        scaler = 1
+        for unit in units:
+            if value.lower().endswith(unit.lower()):
+                scaler = units.get(unit, 1)
+                value = value[:-len(unit)]
+                break
+        return int(float(value) * scaler)

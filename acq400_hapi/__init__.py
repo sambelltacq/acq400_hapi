@@ -27,7 +27,7 @@ if sys.version_info > (3, 0):
 from .shotcontrol import *
 from . import cleanup
 from . import awg_data
-from .acq400_ui import Acq400UI
+from .acq400_ui import Acq400UI, ArgTypes
 from .acq400_print import PR, pprint
 from .intSI import *
 from .debug import Debugger
