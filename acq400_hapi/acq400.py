@@ -1606,23 +1606,47 @@ class Acq400:
             if save: fp.close()
         print(f"Stream complete {runtime:.2f}s {total_bytes} bytes {total_bytes // ssb} samples {f'{missed_samples} missing' if check >= 0 else ''}")
 
-    def get_subset_mask(self, mask_arg=None):
-        """get valid subset mask value"""
-        mask_val = self.s0.stream_subset_mask if mask_arg == None else mask_arg
-        def get_value(mask_val):
-            if mask_val.startswith("0x"):
-                num = int(mask_val, 16)
-                return [i + 1 for i in range(num.bit_length()) if num & (1 << i)]
-            arr = []
-            for num in mask_val.split(','):
-                try: arr.append(int(num))
-                except: break
-            return arr
-        if isinstance(mask_val, str): mask_val = get_value(mask_val)
-        if len(mask_val) == 0: return "None"
-        if mask_arg == None: return mask_val
-        return hex(sum(1 << (int(chan) - 1) for chan in mask_val))
+    def get_stream_mask(self):
+        """Get stream subset mask channels as list"""
+
+        def ajust_from_16bit(mask):
+            new_mask = []
+            spadstart = int(self.s0.spadstart) // 2
+            for chan in mask:
+                offset = (chan - spadstart) // 2
+                if chan <= spadstart: new_mask.append(chan)
+                elif chan % 2 == 0: new_mask.append(chan - offset)
+            return new_mask
+
+        try: mask = self.s0.stream_subset_mask
+        except: return []
+        if mask == 'none': return []
+        if mask.startswith("0x"):
+            mask = int(mask, 16)
+            mask = [i + 1 for i in range(mask.bit_length()) if mask & (1 << i)]
+        else:
+            mask = list(map(int, mask.split(',')))
+        if int(self.s0.data32) == 0: mask = ajust_from_16bit(mask)
+        return mask
     
+    def set_stream_mask(self, mask):
+        """Set stream subset mask channels"""
+        mask = list(map(int, mask))
+
+        def ajust_to_16bit(mask):
+            new_mask = []
+            spadstart = int(self.s0.spadstart) // 2
+            for chan in mask:
+                offset = chan - spadstart - 1
+                if chan <= spadstart: new_mask.append(chan)
+                else: new_mask.extend([chan + offset, chan + offset + 1])
+            return new_mask
+
+        if int(self.s0.data32) == 0: mask = ajust_to_16bit(mask)
+        hex_val = hex(sum(1 << (int(chan) - 1) for chan in mask))
+        if len(mask) == 0: hex_val = "none"
+        self.s0.stream_subset_mask = hex_val
+
     def state_eq(self, state):
         """Check if UUT state = arg"""
         if self.statmon.get_state() == state: return True
