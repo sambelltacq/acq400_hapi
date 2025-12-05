@@ -36,3 +36,27 @@ def timing_ms(f):
         print('func:%6.1f ms %r %s' % (ms, f.__name__, v2))
         return result
     return wrap
+
+class DotDict(dict):
+    __delattr__ = dict.__delitem__
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+
+class Tri(str):
+    """Helper class for Trinarys"""
+    enum = ['enabled', 'source', 'sense']
+    def __new__(cls, value):
+        value = ",".join(map(str, value)) if isinstance(value, list) else value
+        return super().__new__(cls, value)
+    
+    def __getitem__(self, key):
+        return int(self.split(',')[key])
+
+    def __getattr__ (self, attr):
+        if attr in self.enum: return int(self[self.enum.index(attr)])
+        raise AttributeError(f"{self.__class__.__name__!r} object has no attribute {attr!r}")
+    
+    def mask(self, name, value):
+        arr = list(self.split(','))
+        arr[self.enum.index(name)] = str(value)
+        return ','.join(arr)
