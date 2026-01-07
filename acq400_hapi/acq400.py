@@ -1340,9 +1340,6 @@ class Acq400:
 
     def get_ai_channels(self):
         """Gets total number of AI channels
-
-        nchan can sometimes include scratchpad
-
         Returns:
             int: total AI channels
         """
@@ -1353,6 +1350,18 @@ class Acq400:
             ai_channels += int(getattr(getattr(self, ai_site), "NCHAN"))
 
         return ai_channels
+
+    def get_ao_channels(self):
+        """Gets total number of AO channels
+        Returns:
+            int: total AO channels
+        """
+        ao_channels = 0
+        site_types = self.get_site_types()
+        for ao_site in site_types["AOSITES"]:
+            ao_channels += int(self[ao_site].NCHAN)
+
+        return ao_channels
 
     def get_site_types(self):
         """gets all sites grouped by site type
