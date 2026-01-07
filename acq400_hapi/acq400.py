@@ -687,13 +687,13 @@ class Acq400:
             return self._nchan
 
 
-    def data_size(self):
+    def data_size(self, site=0):
         """gets data size
 
         Returns:
             int: data size in bytes
         """
-        return 4 if self.s0.data32 == '1' else 2
+        return 4 if self[site].data32 == '1' else 2
 
     def uut_demux_enabled(self):
         """returns demux status"""
