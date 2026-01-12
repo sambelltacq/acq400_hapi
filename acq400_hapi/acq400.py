@@ -407,6 +407,33 @@ class Acq400:
             self.awg_site = site
         self.mod_count += 1
 
+    def make_sa_sd_aliases(self):
+        """ create aliases for Aggregator Master Site, Distributor Master site """
+        print("make_sa_sd_aliases")
+        try:
+            _ams = self.s0.run0_log.split(" ")[1].split(",")[0]
+            if _ams in "123456":
+                ams = self.svc[f"s{_ams}"]
+            else:
+                print("WARNING: run0_log split fail1 assume s1")
+                ams = self.s1
+        except:
+            print("WARNING: run0_log split fail assume s1")
+            ams = self.s1
+        self.svc["sA"] = ams
+
+        try:
+            _dms = self.s0.play0_log.split(" ")[1].split(",")[0]
+            if _dms in "123456":
+                dms = self.svc[f"s{_ams}"]
+            else:
+                print("WARNING: OLD play0_log, assuming Distributor Master Site 1")
+                dms = self.s1
+        except:
+                print("WARNING: play0_log split fail assume s1")
+                dms = self.s1
+
+        self.svc["sD"] = dms
 
     @classmethod
     def create_uuts(cls, uut_names):
@@ -473,9 +500,11 @@ class Acq400:
         for sm in sl:
             site_enumerators[sm].start()
 
+
         for sm in sl:
 #            print("join {}".format(site_enumerators[sm]))
             site_enumerators[sm].join(10.0)
+        self.make_sa_sd_aliases()
 
         self.sites = [int(s.split('=')[0]) for s in sl]
 
@@ -810,7 +839,7 @@ class Acq400:
         
         data_size = 4 if int(self.s0.data32) else 2
         raw_data_size = int(self.s0.raw_data_size)
-        ch_data_size = int(self.s1.ch_data_size)
+        ch_data_size = int(self.sA.ch_data_size)
         nchan = int(self.s0.NCHAN)
         is_cooked = raw_data_size < 1 # raw_data_size is 0 when data has been demuxed ("cooked") on uut
         
