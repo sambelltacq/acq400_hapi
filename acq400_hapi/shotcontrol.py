@@ -131,7 +131,7 @@ class ShotController:
     def on_shot_complete(self):
         """runs on completion, expect subclass override."""
         for u in self.uuts:
-            print("%s SHOT COMPLETE shot:%s" % (u.uut, u.s1.shot))
+            print("%s SHOT COMPLETE shot:%s" % (u.uut, u.sA.shot))
 
     def run_shot(self, soft_trigger=False, acq1014_ext_trigger=0,
                 remote_trigger=None):

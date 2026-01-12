@@ -127,7 +127,7 @@ class EnableSoftSoftTrgAction:
 def set_shot(args, uuts):
     if args.shot != None:
         for u in uuts:
-            u.s1.shot = args.shot
+            u.sA.shot = args.shot
 
 @acq400_hapi.timing
 def run_shot(args, uuts, shot_controller, trigger_action, st):

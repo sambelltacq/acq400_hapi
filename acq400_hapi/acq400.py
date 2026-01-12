@@ -407,33 +407,36 @@ class Acq400:
             self.awg_site = site
         self.mod_count += 1
 
+    def _make_svc_from_log(self, log):
+        ms = None
+        try :
+            _ms = log.split(" ")[1].split(",")[0]
+            if _ms in "123456":
+                ms = self.svc[f"s{_ms}"]
+            else:
+                print(f"ms {ms} not a valid site")
+        except:
+            print(f"bad split")
+
+        return ms
+
     def make_sa_sd_aliases(self):
-        """ create aliases for Aggregator Master Site, Distributor Master site """
+        """ create aliases for Aggregator Master Site, Distributor Master site 
+            ensure that self.sA is set regardless. If no XI, use self.sD, else go with s1
+        """
         print("make_sa_sd_aliases")
-        try:
-            _ams = self.s0.run0_log.split(" ")[1].split(",")[0]
-            if _ams in "123456":
-                ams = self.svc[f"s{_ams}"]
-            else:
-                print("WARNING: run0_log split fail1 assume s1")
-                ams = self.s1
-        except:
-            print("WARNING: run0_log split fail assume s1")
-            ams = self.s1
-        self.svc["sA"] = ams
+        ams = self._make_svc_from_log(self.s0.run0_log)
+        dms = self._make_svc_from_log(self.s0.play0_log)
 
-        try:
-            _dms = self.s0.play0_log.split(" ")[1].split(",")[0]
-            if _dms in "123456":
-                dms = self.svc[f"s{_ams}"]
-            else:
-                print("WARNING: OLD play0_log, assuming Distributor Master Site 1")
-                dms = self.s1
-        except:
-                print("WARNING: play0_log split fail assume s1")
-                dms = self.s1
-
-        self.svc["sD"] = dms
+        print(f"make_sa_sd_aliases {ams} {dms}")
+        if dms is not None:
+            self.svc["sD"] = dms
+        if ams is not None:
+            self.svc["sA"] = ams
+        elif dms is not None:
+            self.svc["sA"] = dms
+        else:
+            self.svc["sA"] = self.s1
 
     @classmethod
     def create_uuts(cls, uut_names):
@@ -771,7 +774,7 @@ class Acq400:
         data_size = 4 if self.s0.data32 == '1' else 2
         if self.uut_demux_enabled():
             try:
-                nbytes = int(self.s1.ch_data_size)
+                nbytes = int(self.sA.ch_data_size)
                 if nbytes == 0:
                     raise DataNotAvailableError
             except AttributeError:
@@ -880,7 +883,7 @@ class Acq400:
 
     def read_transient_timebase(self, nsamples, pre=0):
         try:
-            fs = freq(self.s1.ACQ480_OSR)
+            fs = freq(self.sA.ACQ480_OSR)
         except:
             fs = freq(self.s0.SIG_CLK_S1_FREQ)
         if fs > 1e6:
@@ -957,7 +960,7 @@ class Acq400:
         """Send a STL file to the specified port
 
         Args:
-            stl (str): stl string each line seperated by newlines
+            stl (str): stl string each line separated by newlines
             port (int): port num see AcqPorts
             trace (bool, optional): print each line sent. Defaults to False.
             wait_eof (bool, optional): wait for end of file. Defaults to True.
