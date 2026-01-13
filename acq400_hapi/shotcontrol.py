@@ -148,7 +148,7 @@ class ShotController:
             self.uuts[0].s2.acq1014_trg = 1
         self.prep_shot()
         self.arm_shot()
-        if soft_trigger:
+        if soft_trigger and not self.uuts[0].auto_soft_trigger_enabled():
             if soft_trigger < 0:
                 print("hit return for soft_trigger")
                 sys.stdin.readline()
