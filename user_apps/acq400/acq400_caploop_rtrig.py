@@ -46,7 +46,8 @@ def run_shots(args):
     acq400_hapi.cleanup.init()
 
     for uut in uuts:
-        uut.s1.shot = 0
+        uut.sA.shot = 0
+        uut.s0.transient = 'SOFT_TRIGGER=0'           # AUTO SOFT_TRIGGER NOT helpful for concurrent trigger!
         if hasattr(uut.s0, 'TIM_CTRL_LOCK'):
             print("LOCKDOWN {}".format(uut))
             uut.s0.TIM_CTRL_LOCK = 1
