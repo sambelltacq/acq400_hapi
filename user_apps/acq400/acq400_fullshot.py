@@ -141,7 +141,9 @@ def run_shot(args, uuts, shot_controller, trigger_action, st):
                     if trigger_action:
                         trigger_action()
                     elif st:
-                        uut.s0.soft_trigger = '1'
+                        if not uut.auto_soft_trigger_enabled():
+                            print(f'auto_soft_trigger NOT enabled, so do it here')
+                            uut.s0.soft_trigger = '1'
                 time.sleep(1)
             shot_controller.handle_data(args)
         else:
