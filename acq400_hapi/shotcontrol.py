@@ -111,7 +111,8 @@ class ShotController:
     def arm_shot_action(u):
         def _arm_shot_action():
             time.sleep(1)
-            u.s0.TRANSIENT_SET_ARM = 1
+#            u.s0.TRANSIENT_SET_ARM = 1
+            u.s0.set_arm = 1
         return _arm_shot_action
 
 
