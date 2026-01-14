@@ -407,6 +407,36 @@ class Acq400:
             self.awg_site = site
         self.mod_count += 1
 
+    def _make_svc_from_log(self, log):
+        ms = None
+        try :
+            _ms = log.split(" ")[1].split(",")[0]
+            if _ms in "123456":
+                ms = self.svc[f"s{_ms}"]
+            else:
+                print(f"ms {ms} not a valid site")
+        except:
+            print(f"bad split")
+
+        return ms
+
+    def make_sa_sd_aliases(self):
+        """ create aliases for Aggregator Master Site, Distributor Master site 
+            ensure that self.sA is set regardless. If no XI, use self.sD, else go with s1
+        """
+        print("make_sa_sd_aliases")
+        ams = self._make_svc_from_log(self.s0.run0_log)
+        dms = self._make_svc_from_log(self.s0.play0_log)
+
+        print(f"make_sa_sd_aliases {ams} {dms}")
+        if dms is not None:
+            self.svc["sD"] = dms
+        if ams is not None:
+            self.svc["sA"] = ams
+        elif dms is not None:
+            self.svc["sA"] = dms
+        else:
+            self.svc["sA"] = self.s1
 
     @classmethod
     def create_uuts(cls, uut_names):
@@ -473,9 +503,11 @@ class Acq400:
         for sm in sl:
             site_enumerators[sm].start()
 
+
         for sm in sl:
 #            print("join {}".format(site_enumerators[sm]))
             site_enumerators[sm].join(10.0)
+        self.make_sa_sd_aliases()
 
         self.sites = [int(s.split('=')[0]) for s in sl]
 
@@ -742,7 +774,7 @@ class Acq400:
         data_size = 4 if self.s0.data32 == '1' else 2
         if self.uut_demux_enabled():
             try:
-                nbytes = int(self.s1.ch_data_size)
+                nbytes = int(self.sA.ch_data_size)
                 if nbytes == 0:
                     raise DataNotAvailableError
             except AttributeError:
@@ -810,7 +842,7 @@ class Acq400:
         
         data_size = 4 if int(self.s0.data32) else 2
         raw_data_size = int(self.s0.raw_data_size)
-        ch_data_size = int(self.s1.ch_data_size)
+        ch_data_size = int(self.sA.ch_data_size)
         nchan = int(self.s0.NCHAN)
         is_cooked = raw_data_size < 1 # raw_data_size is 0 when data has been demuxed ("cooked") on uut
         
@@ -851,7 +883,7 @@ class Acq400:
 
     def read_transient_timebase(self, nsamples, pre=0):
         try:
-            fs = freq(self.s1.ACQ480_OSR)
+            fs = freq(self.sA.ACQ480_OSR)
         except:
             fs = freq(self.s0.SIG_CLK_S1_FREQ)
         if fs > 1e6:
@@ -915,12 +947,12 @@ class Acq400:
 
         if hz >= self.mb_clk_min:
             self.s0.SIG_CLK_MB_SET = hz
-            self.s1.CLKDIV = '1'
+            self.sA.CLKDIV = '1'
         else:
             for clkdiv in range(1,2000):
                 if hz*clkdiv >= self.mb_clk_min:
                     self.s0.SIG_CLK_MB_SET = hz*clkdiv
-                    self.s1.CLKDIV = clkdiv
+                    self.sA.CLKDIV = clkdiv
                     return
             raise ValueError("frequency out of range {}".format(hz))
 
@@ -928,7 +960,7 @@ class Acq400:
         """Send a STL file to the specified port
 
         Args:
-            stl (str): stl string each line seperated by newlines
+            stl (str): stl string each line separated by newlines
             port (int): port num see AcqPorts
             trace (bool, optional): print each line sent. Defaults to False.
             wait_eof (bool, optional): wait for end of file. Defaults to True.
@@ -1109,22 +1141,22 @@ class Acq400:
         print(trigger)
         self.s0.transient = "PRE=0 POST={} SOFT_TRIGGER={}".format(post, trigger[1])
 
-        self.s1.TRG = 1
+        self.sA.TRG = 1
         if role == "slave" or trigger[1] == 0:
-            self.s1.TRG_DX = 0
+            self.sA.TRG_DX = 0
         else:
-            self.s1.TRG_DX = 1
-        self.s1.TRG_SENSE = trigger[2]
+            self.sA.TRG_DX = 1
+        self.sA.TRG_SENSE = trigger[2]
 
-        self.s1.EVENT0 = 0
-        self.s1.EVENT0_DX = 0
-        self.s1.EVENT0_SENSE = 0
+        self.sA.EVENT0 = 0
+        self.sA.EVENT0_DX = 0
+        self.sA.EVENT0_SENSE = 0
 
-        self.s1.RGM = 0
-        self.s1.RGM_DX = 0
-        self.s1.RGM_SENSE = 0
+        self.sA.RGM = 0
+        self.sA.RGM_DX = 0
+        self.sA.RGM_SENSE = 0
 
-        self.s1.RGM = 0 # Make sure RGM mode is turned off.
+        self.sA.RGM = 0 # Make sure RGM mode is turned off.
         self.s0.SIG_EVENT_SRC_0 = 0
 
         return None
@@ -1147,22 +1179,22 @@ class Acq400:
         trg = 1 if trigger[1] == 1 else 0
         self.s0.transient = "PRE={} POST={} SOFT_TRIGGER={}".format(pre, post, trg)
 
-        self.s1.TRG = trigger[0]
+        self.sA.TRG = trigger[0]
         if role == "slave" or trigger[1] == 0:
-            self.s1.TRG_DX = 0
+            self.sA.TRG_DX = 0
         else:
-            self.s1.TRG_DX = 1
-        self.s1.TRG_SENSE = trigger[2]
+            self.sA.TRG_DX = 1
+        self.sA.TRG_SENSE = trigger[2]
 
-        self.s1.EVENT0 = event[0]
-        self.s1.EVENT0_DX = event[1]
-        self.s1.EVENT0_SENSE = event[2]
+        self.sA.EVENT0 = event[0]
+        self.sA.EVENT0_DX = event[1]
+        self.sA.EVENT0_SENSE = event[2]
 
-        self.s1.RGM = 0
-        self.s1.RGM_DX = 0
-        self.s1.RGM_SENSE = 0
+        self.sA.RGM = 0
+        self.sA.RGM_DX = 0
+        self.sA.RGM_SENSE = 0
 
-        self.s1.RGM = 0 # Make sure RGM mode is turned off.
+        self.sA.RGM = 0 # Make sure RGM mode is turned off.
         self.s0.SIG_EVENT_SRC_0 = 0
         return None
     
@@ -1186,21 +1218,21 @@ class Acq400:
         """
         if post > 0:
             self.s0.transient = "PRE=0 POST={}".format(post)
-        self.s1.rtm_translen = rtm_translen
-        self.s1.TRG = 1
+        self.sA.rtm_translen = rtm_translen
+        self.sA.TRG = 1
         if role == "slave" or trigger[1] == 0:
-            self.s1.TRG_DX = 0
+            self.sA.TRG_DX = 0
         else:
-            self.s1.TRG_DX = 1
-        self.s1.TRG_SENSE = trigger[2]
+            self.sA.TRG_DX = 1
+        self.sA.TRG_SENSE = trigger[2]
 
-        self.s1.EVENT0 = event[0]
-        self.s1.EVENT0_DX = event[1]
-        self.s1.EVENT0_SENSE = event[2]
+        self.sA.EVENT0 = event[0]
+        self.sA.EVENT0_DX = event[1]
+        self.sA.EVENT0_SENSE = event[2]
 
-        self.s1.RGM = 3
-        self.s1.RGM_DX = 0
-        self.s1.RGM_SENSE = 1
+        self.sA.RGM = 3
+        self.sA.RGM_DX = 0
+        self.sA.RGM_SENSE = 1
 
         self.s0.SIG_EVENT_SRC_0 = 1 if gpg == 1 else 0
 
@@ -1225,11 +1257,11 @@ class Acq400:
         sigdef = "1,{},{}".format(sig_DX[1], 1 if edge == 'rising' else 0)
 
         if pre > 0:
-            self.s1.event0 = sigdef
-            self.s1.trg = '1,1,1'
+            self.sA.event0 = sigdef
+            self.sA.trg = '1,1,1'
         else:
-            self.s1.event0 = '0,0,0'
-            self.s1.trg = sigdef
+            self.sA.event0 = '0,0,0'
+            self.sA.trg = sigdef
 
         self.s0.transient = "PRE={} POST={} SOFT_TRIGGER={} DEMUX={}".\
             format(pre, post, auto_soft_trigger, demux)
@@ -1245,20 +1277,20 @@ class Acq400:
             gpg (int, optional): Put GPG output onto the event bus (to use as an Event for RGM). Defaults to 0.
         """
         self.s0.transient = "PRE=0 POST={}".format(post)
-        self.s1.TRG = 1
+        self.sA.TRG = 1
         if role == "slave" or trigger[1] == 0:
-            self.s1.TRG_DX = 0
+            self.sA.TRG_DX = 0
         else:
-            self.s1.TRG_DX = 1
-        self.s1.TRG_SENSE = trigger[2]
+            self.sA.TRG_DX = 1
+        self.sA.TRG_SENSE = trigger[2]
 
-        self.s1.EVENT0 = 0#event[0]
-        self.s1.EVENT0_DX = 0#event[1]
-        self.s1.EVENT0_SENSE = 0
+        self.sA.EVENT0 = 0#event[0]
+        self.sA.EVENT0_DX = 0#event[1]
+        self.sA.EVENT0_SENSE = 0
 
-        self.s1.RGM = 2
-        self.s1.RGM_DX = 0
-        self.s1.RGM_SENSE = 1
+        self.sA.RGM = 2
+        self.sA.RGM_DX = 0
+        self.sA.RGM_SENSE = 1
 
         self.s0.SIG_EVENT_SRC_0 = 1 if gpg == 1 else 0
 
@@ -1308,6 +1340,9 @@ class Acq400:
         plt.show()
         return data
 
+
+    def auto_soft_trigger_enabled(self):
+        return "SOFT_TRIGGER=1" in self.s0.transient
 
     def read_muxed_data(self):
         """returns data from port 53000. 
@@ -1718,11 +1753,11 @@ class Acq400:
         ):
         """Configures UUT for capture"""
         self.s0.transient = f"PRE={pre} POST={post} SOFT_TRIGGER={soft} DEMUX={demux}"
-        self.s1.trg = trigger
-        self.s1.event0 = event0
-        self.s1.event1 = event1
-        self.s1.rgm = rgm
-        self.s1.RTM_TRANSLEN = translen
+        self.sA.trg = trigger
+        self.sA.event0 = event0
+        self.sA.event1 = event1
+        self.sA.rgm = rgm
+        self.sA.RTM_TRANSLEN = translen
 
         if spad: self.s0.spad = spad
 
@@ -1730,7 +1765,7 @@ class Acq400:
             #Only master can soft trigger
             trigger = trigger.split(',')
             trigger[1] = '0'
-            self.s1.trg = ','.join(trigger)
+            self.sA.trg = ','.join(trigger)
 
         self.s0.run0 = f"{self.s0.sites} {self.s0.spad}"
 
@@ -1829,12 +1864,12 @@ class Acq2106(Acq400):
 
     def set_MR(self, enable, evsel0=4, evsel1=5, MR10DEC=8):
         if enable:
-            self.s1.ACQ480_MR_EVSEL_0 = 'd{}'.format(evsel0)
-            self.s1.ACQ480_MR_EVSEL_1 = 'd{}'.format(evsel1)
-            self.s1.ACQ480_MR_10DEC = 'dec{}'.format(MR10DEC)
-            self.s1.ACQ480_MR_EN = '1'
+            self.sA.ACQ480_MR_EVSEL_0 = 'd{}'.format(evsel0)
+            self.sA.ACQ480_MR_EVSEL_1 = 'd{}'.format(evsel1)
+            self.sA.ACQ480_MR_10DEC = 'dec{}'.format(MR10DEC)
+            self.sA.ACQ480_MR_EN = '1'
         else:
-            self.s1.ACQ480_MR_EN = '0'
+            self.sA.ACQ480_MR_EN = '0'
     def wr_PPS_active(self):
         if self.cC.WR_PPS_ACTIVE.split(' ')[1] == '1.0':
             return True

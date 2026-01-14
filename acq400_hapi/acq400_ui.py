@@ -32,14 +32,14 @@ class Acq400UI:
             dx = 1
             
         triplet = "1,%d,%d" % (dx, 0 if edge == 'falling' else 1)
-#        print("triplet={}".format(triplet))
+        print("triplet={}".format(triplet))
         if args.pre != 0:
-            uut.s1.trg = "1,1,1"
-            uut.s1.event0 = triplet
+            uut.sA.trg = "1,1,1"
+            uut.sA.event0 = triplet
             args.auto_soft_trigger = True
         else:
-            uut.s1.trg = triplet
-            uut.s1.event0 = "0,0,0"
+            uut.sA.trg = triplet
+            uut.sA.event0 = "0,0,0"
 
     @staticmethod
     def _exec_args_clk(uut, clk):

@@ -111,7 +111,8 @@ class ShotController:
     def arm_shot_action(u):
         def _arm_shot_action():
             time.sleep(1)
-            u.s0.TRANSIENT_SET_ARM = 1
+#            u.s0.TRANSIENT_SET_ARM = 1
+            u.s0.set_arm = 1
         return _arm_shot_action
 
 
@@ -131,7 +132,7 @@ class ShotController:
     def on_shot_complete(self):
         """runs on completion, expect subclass override."""
         for u in self.uuts:
-            print("%s SHOT COMPLETE shot:%s" % (u.uut, u.s1.shot))
+            print("%s SHOT COMPLETE shot:%s" % (u.uut, u.sA.shot))
 
     def run_shot(self, soft_trigger=False, acq1014_ext_trigger=0,
                 remote_trigger=None):
@@ -148,7 +149,7 @@ class ShotController:
             self.uuts[0].s2.acq1014_trg = 1
         self.prep_shot()
         self.arm_shot()
-        if soft_trigger:
+        if soft_trigger and not self.uuts[0].auto_soft_trigger_enabled():
             if soft_trigger < 0:
                 print("hit return for soft_trigger")
                 sys.stdin.readline()
