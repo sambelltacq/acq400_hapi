@@ -719,13 +719,13 @@ class Acq400:
             return self._nchan
 
 
-    def data_size(self):
+    def data_size(self, site=0):
         """gets data size
 
         Returns:
             int: data size in bytes
         """
-        return 4 if self.s0.data32 == '1' else 2
+        return 4 if self[site].data32 == '1' else 2
 
     def uut_demux_enabled(self):
         """returns demux status"""
@@ -1375,9 +1375,6 @@ class Acq400:
 
     def get_ai_channels(self):
         """Gets total number of AI channels
-
-        nchan can sometimes include scratchpad
-
         Returns:
             int: total AI channels
         """
@@ -1388,6 +1385,18 @@ class Acq400:
             ai_channels += int(getattr(getattr(self, ai_site), "NCHAN"))
 
         return ai_channels
+
+    def get_ao_channels(self):
+        """Gets total number of AO channels
+        Returns:
+            int: total AO channels
+        """
+        ao_channels = 0
+        site_types = self.get_site_types()
+        for ao_site in site_types["AOSITES"]:
+            ao_channels += int(self[ao_site].NCHAN)
+
+        return ao_channels
 
     def get_site_types(self):
         """gets all sites grouped by site type
