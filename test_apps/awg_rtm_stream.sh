@@ -209,7 +209,7 @@ config_ao() {
     BURSTLEN=$3
     echo "Config AO UUT"
     send_cmd $UUT 0 "sync_role master ${CLK}" true
-    send_cmd $UUT 1 "bufferlen=${BURSTLEN}"
+    send_cmd $UUT 1 "rtm_translen=${BURSTLEN}"
     send_cmd $UUT 1 "trg=1,0,1"
     send_cmd $UUT 1 "awg_rtm=3"
 }
