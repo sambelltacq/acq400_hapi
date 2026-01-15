@@ -21,6 +21,19 @@ def run_main(args):
     if not os.path.exists(args.file):
         print(f"Error: File not found: {args.file}")
         return 1
+
+    if args.plot_bursts is not None:
+        burst_start, burst_end = args.plot_bursts
+        print(burst_start + burst_end)
+        plot_burst(
+            args.file,
+            translen=args.translen,
+            datasize=args.datasize,
+            nchan=args.nchan,
+            burst_start=burst_start,
+            burst_end=burst_end,
+        )
+        return 0
     
     dtype = np.int16 if args.datasize == 2 else np.int32
     max_scale = np.iinfo(dtype).max
@@ -28,20 +41,32 @@ def run_main(args):
     
     first_burst = read_burst(args.file, args.translen, args.datasize, args.nchan)
     
-    error_sample = check_burst(
+    target_sample = check_burst(
         args.file, first_burst, args.translen, args.datasize, args.nchan, atol
     )
     
-    if error_sample is None: 
+    if target_sample is None: 
         print("Burst check passed!")
         return
     
-    aligned_sample = (error_sample // args.translen) * args.translen
+    aligned_sample = (target_sample // args.translen) * args.translen
     burst_num = aligned_sample // args.translen
     print(f"Error: bad burst #{burst_num} (sample {aligned_sample:,})")
+
+    burst_neighbours = 2
+    burst_start = max(0, burst_num - burst_neighbours)
+    burst_end = burst_num + burst_neighbours
+
     if args.compare:
-        plot_compare(args.file, error_sample, args.translen, args.datasize, args.nchan, first_burst, atol=atol)
-    plot_burst(args.file, error_sample, args.translen, args.datasize, args.nchan)
+        plot_compare(args.file, target_sample, args.translen, args.datasize, args.nchan, first_burst, atol=atol)
+    plot_burst(
+        args.file,
+        translen=args.translen,
+        datasize=args.datasize,
+        nchan=args.nchan,
+        burst_start=burst_start,
+        burst_end=burst_end,
+    )
 
 
 def read_burst(filename, translen, datasize, nchan):
@@ -166,7 +191,6 @@ def plot_compare(filename, error_sample, translen, datasize, nchan, first_burst,
                 alpha=0.7
             )
             
-            # Add markers at error points
             if len(error_indices) > 0:
                 ax.scatter(
                     error_indices,
@@ -188,14 +212,16 @@ def plot_compare(filename, error_sample, translen, datasize, nchan, first_burst,
     
     plt.show()
 
-def plot_burst(filename, error_sample, translen, datasize, nchan):
-    aligned_sample = (error_sample // translen) * translen
-    burst_num = aligned_sample // translen
-    burst_neighbours = 2
-    plot_start = max(0, aligned_sample - (translen * burst_neighbours))
-    plot_end = (aligned_sample + translen) + (translen * burst_neighbours)
+def plot_burst(filename, translen, datasize, nchan, burst_start, burst_end):
+
+    if burst_start < 0 or burst_end < burst_start:
+        raise ValueError("Error: burst range invalid")
+
+    plot_start = burst_start * translen
+    plot_end = (burst_end + 1) * translen
     num_samples = plot_end - plot_start
-    
+    title = f'Burst {burst_start} to {burst_end}'
+
     data_array = read_chunk(filename, plot_start, num_samples, datasize, nchan)
     channel_data = demux_burst(data_array, nchan)
     
@@ -211,13 +237,12 @@ def plot_burst(filename, error_sample, translen, datasize, nchan):
     
     plt.xlabel('Samples')
     plt.ylabel('Codes')
-    plt.title(f'Burst #{burst_num}', fontsize=14)
+    plt.title(title, fontsize=14)
     plt.legend()
     plt.tight_layout()
     plt.show()
 
 def demux_burst(data_array, nchan):
-    """Demultiplex an interleaved burst array into separate channel arrays."""
     num_samples_actual = len(data_array) // nchan
     data_reshaped = data_array[:num_samples_actual * nchan].reshape(num_samples_actual, nchan)
     
@@ -228,11 +253,15 @@ def demux_burst(data_array, nchan):
     return channel_data
 
 
+def int_range(value):
+    return list(map(int, value.split(':')))
+
 def get_parser():
     parser = argparse.ArgumentParser(description='Check bursts')
     parser.add_argument('--file', required=True, help='file')
     parser.add_argument('--translen', required=True, type=int, help='translen')
     parser.add_argument('--nchan', type=int, required=True, help='nchan')
+    parser.add_argument('--plot_bursts', type=int_range, default=None, help='Bursts to plot START:STOP')
     parser.add_argument('--tolerance', type=float, default=15, help='tolerance percent of max scale')
     parser.add_argument('--datasize', type=int, default=2, help='data size')
     parser.add_argument('--compare', action='store_true', help='compare bad burst to first burst')
