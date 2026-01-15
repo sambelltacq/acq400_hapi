@@ -196,6 +196,7 @@ config_ai() {
     send_cmd $UUT 1 "RTM_TRANSLEN=${TRANSLEN}"
     send_cmd $UUT 0 "stream_subset_mask=${MASK}"
     send_cmd $UUT 1 "rgm=3,0,1"
+    send_cmd $UUT 1 "RTM_TRANSLEN"
 }
 
 config_ao() {
