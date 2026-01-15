@@ -36,7 +36,6 @@ AO_SITE=1
 BURSTLEN=1000000
 
 SOURCE='awg_waveforms'
-DATFILE='awg_rtm_stream.dat'
 
 usage() {
     cat << EOF
@@ -234,4 +233,6 @@ config_ao $AO_UUT $AO_CLK $BURSTLEN
 prime_trigger $AI_UUT $AO_UUT
 play_waveforms $AO_UUT $SOURCE
 
-nc $AI_UUT 4210 | pv -Wtrb -N STREAMING > $DATFILE
+
+DATFILE="awg_rtm_stream.${AO_UUT}.dat"
+nc $AI_UUT 4210 | pv -Wtrb -N "STREAMING to ${DATFILE}" > $DATFILE
