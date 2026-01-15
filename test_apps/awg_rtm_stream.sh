@@ -181,8 +181,12 @@ send_cmd() {
     SITE_NUM=$2
     CMD=$3
     PORT=$((4220 + $SITE_NUM))
-    echo "[${UUT}:${SITE_NUM}] ${CMD}"
-    echo "$CMD" | nc -N $UUT $PORT
+    SUPPRESS=${4:-false}
+    if [ "$SUPPRESS" = "true" ]; then
+        echo "$CMD" | nc -N $UUT $PORT > /dev/null 2>&1
+    else
+        echo "$CMD" | nc -N $UUT $PORT
+    fi
 }
 
 config_ai() {
@@ -192,7 +196,7 @@ config_ai() {
     TRANSLEN=$3
     MASK=$4
     echo "Config AI UUT"
-    send_cmd $UUT 0 "sync_role master ${CLK} TRG=int"
+    send_cmd $UUT 0 "sync_role master ${CLK} TRG=int" true
     send_cmd $UUT 0 "SIG:SRC:TRG:0=HDMI"
     send_cmd $UUT 1 "RTM_TRANSLEN=${TRANSLEN}"
     send_cmd $UUT 0 "stream_subset_mask=${MASK}"
@@ -205,7 +209,7 @@ config_ao() {
     CLK=$2
     BURSTLEN=$3
     echo "Config AO UUT"
-    send_cmd $UUT 0 "sync_role master ${CLK}"
+    send_cmd $UUT 0 "sync_role master ${CLK}" true
     send_cmd $UUT 1 "bufferlen=${BURSTLEN}"
     send_cmd $UUT 1 "trg=1,0,1"
     send_cmd $UUT 1 "awg_rtm=3"
