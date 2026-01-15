@@ -242,7 +242,7 @@ def upload(args, shots, doClose=False):
         for u in uuts:
             u.close()
 
-SOFT_TRIGGER=int(os.getenv("SOFT_TRIGGER", "1"))
+#SOFT_TRIGGER=int(os.getenv("SOFT_TRIGGER", "1"))
 CAPTURE=int(os.getenv("CAPTURE", "0"))
 
 def uniq(inp):
@@ -257,7 +257,7 @@ def get_parser(argStr=None):
     parser = argparse.ArgumentParser(description='Run a shot and capture data')
     acq400_hapi.ShotControllerUI.add_args(parser)
     acq400_hapi.Acq400UI.add_args(parser, transient=True)
-    parser.add_argument('--soft_trigger', default=SOFT_TRIGGER, type=int, help="help use soft trigger on capture")
+    parser.add_argument('--soft_trigger', default=None, type=int, help="help use soft trigger on capture")
     parser.add_argument('--capture', default=CAPTURE, type=int, help="1: capture data, 0: wait for someone else to capture, -1: just upload")
     parser.add_argument('--remote_trigger', default=None, type=str, help="options: EXT")
     parser.add_argument('--wrtd_tx', default=0, type=int, help="release a wrtd_tx when all boards read .. works when free-running trigger")    
