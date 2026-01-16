@@ -65,6 +65,7 @@ class AcqPorts:
     MULTI_EVENT_DISK = 53556
     DATA_SPY = 53667
     LIVETOP = 53998
+    DIO2STL = 53998
     ONESHOT = 53999
     AWG_ONCE = 54201
     AWG_AUTOREARM = 54202
@@ -1117,6 +1118,16 @@ class Acq400:
             nc.sock.shutdown(socket.SHUT_RDWR)
             nc.sock.close()
 
+    def run_dio2stl(self):
+        with netclient.Netclient(self.uut, AcqPorts.DIO2STL) as nc:
+            while True:
+                rx = nc.sock.recv(4096)
+                if not rx:
+                    break
+                sys.stdout.buffer.write(rx)
+                sys.stdout.flush()
+            nc.sock.shutdown(socket.SHUT_RDWR)
+            nc.sock.close()
 
     def disable_trigger(self):
         #master.s0.SIG_SRC_TRG_0 = 'NONE'
