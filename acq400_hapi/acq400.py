@@ -425,11 +425,9 @@ class Acq400:
         """ create aliases for Aggregator Master Site, Distributor Master site 
             ensure that self.sA is set regardless. If no XI, use self.sD, else go with s1
         """
-        print("make_sa_sd_aliases")
         ams = self._make_svc_from_log(self.s0.run0_log)
-        dms = self._make_svc_from_log(self.s0.play0_log)
+        dms = self._make_svc_from_log(self.s0.play0_log) if hasattr(self.s0, 'play0_log') else None
 
-        print(f"make_sa_sd_aliases {ams} {dms}")
         if dms is not None:
             self.svc["sD"] = dms
         if ams is not None:
