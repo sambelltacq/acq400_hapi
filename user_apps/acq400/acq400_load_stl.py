@@ -15,25 +15,6 @@ import acq400_hapi
 import argparse
 import time
 
-def ajust_stl(stl, repeat, end_state):
-    lines = stl.splitlines()
-
-    if repeat > 0:
-        print(f"repeating stl {repeat} times")
-        for lno, line in enumerate(lines):
-            if line.strip() and not line.strip().startswith('#'):
-                index = lno + 1
-                break
-        tail = lines[index:]
-        for _ in range(repeat):
-            lines.extend(tail)
-
-    if end_state:
-        lines.append(f'+0,{1 if end_state == "HIGH" else 0}')
-
-    return '\n'.join(lines)
-
-
 def loop_until_runtime(uut, runtime):
     """Disable GPG after runtime"""
     print(f"Waiting until capture runtime {runtime}s")
@@ -74,7 +55,7 @@ def run_main(args):
     uut.s0.SIG_FP_GPIO = 'EVT0'
 
     with open(args.stl, 'r') as fp:
-        uut.load_gpg(ajust_stl(fp.read(), args.repeat, args.end_state))
+        uut.load_gpg(fp.read())
         uut.s0.pulse_def = args.stl
 
     uut.s0.GPG_ENABLE = '1'
@@ -91,8 +72,6 @@ def get_parser():
     parser.add_argument('--timescaler', '--ts', default=1, type=int, help="GPG timescaler")
     parser.add_argument('--trg', default=None, help='gpg trg triplet (1,0,0)')
     parser.add_argument('--clk', default=None, help='gpg clk triplet (1,0,0)')
-    parser.add_argument('--repeat', default=0, type=int, help='repeat STL')
-    parser.add_argument('--end_state', '--es', default=None, choices=['HIGH', 'LOW'], help='override end state')
     parser.add_argument('--runtime',  default=None, type=int, help='Loop mode runtime in seconds')
 
     parser.add_argument('uutname', help="uut")
