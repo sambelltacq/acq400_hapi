@@ -4,12 +4,16 @@
 Play STL file via GPG
 
 Usage:
-
+    # Play an STL once
     ./user_apps/acq400/acq400_load_stl.py --stl STL/sos0.stl --mode=0 --trg=1,1,1 acq1102_010
+
+    # Play an STL in a Loop for ~10s start on soft trigger
+    ./user_apps/acq400/acq400_load_stl.py --stl STL/sos0.stl --mode=2 --runtime=10 --trg=1,1,1 acq2106_054
 """
 
 import acq400_hapi
 import argparse
+import time
 
 def ajust_stl(stl, repeat, end_state):
     lines = stl.splitlines()
@@ -28,6 +32,20 @@ def ajust_stl(stl, repeat, end_state):
         lines.append(f'+0,{1 if end_state == "HIGH" else 0}')
 
     return '\n'.join(lines)
+
+
+def loop_until_runtime(uut, runtime):
+    """Disable GPG after runtime"""
+    print(f"Waiting until capture runtime {runtime}s")
+    while True:
+        current = acq400_hapi.intpv(uut.s1.SIG_SAMPLE_COUNT_NZCOUNT)
+        if current >= runtime: break
+        if current > 0: print(f"runtime {current}/{runtime}s")
+        time.sleep(1)
+    
+    print(f"{runtime}s Reached disabling GPG")
+    uut.s0.GPG_ENABLE = '0'
+
 
 def run_main(args):
 
@@ -61,6 +79,10 @@ def run_main(args):
 
     uut.s0.GPG_ENABLE = '1'
 
+    if args.mode == 2 and args.runtime:
+        loop_until_runtime(uut, args.runtime)
+
+
 def get_parser():
     parser = argparse.ArgumentParser(description='Play STL file via GPG')
 
@@ -71,6 +93,7 @@ def get_parser():
     parser.add_argument('--clk', default=None, help='gpg clk triplet (1,0,0)')
     parser.add_argument('--repeat', default=0, type=int, help='repeat STL')
     parser.add_argument('--end_state', '--es', default=None, choices=['HIGH', 'LOW'], help='override end state')
+    parser.add_argument('--runtime',  default=None, type=int, help='Loop mode runtime in seconds')
 
     parser.add_argument('uutname', help="uut")
     return parser
