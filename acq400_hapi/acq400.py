@@ -1781,6 +1781,17 @@ class Acq400:
 
         self.s0.run0 = f"{self.s0.sites} {self.s0.spad}"
 
+    def get_sample_rate(self):
+        """Return sample rate in Hz"""
+        model = self.sA.MODEL.upper()
+        if model.startswith('ACQ48'):
+            clk = self.sA.ACQ480_OSR
+        elif model.startswith('ACQ43'):
+            clk = self.sA.ACQ43X_SAMPLE_RATE
+        else:
+            clk = self.s0.SIG_CLK_S1_FREQ
+        return round(freq(clk), -3)
+
 def pv(_pv):
     return _pv.split(" ")[1]
 
