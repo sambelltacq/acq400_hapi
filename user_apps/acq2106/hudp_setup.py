@@ -182,6 +182,9 @@ def config_tx_uut(txuut, args):
     if tx_pkt_sz != tx_calc_pkt_sz:
         print("ERROR: set tx_pkt_size {} actual tx_pkt_size {}".format(tx_pkt_sz, tx_calc_pkt_sz))    
     print("TX configured. ssb:{} spp:{} tx_pkt_size {}".format(tx_ssb, args.spp, tx_pkt_sz))
+    print(f"Expected Data rate: {txuut.get_data_rate() / args.hudp_decim:.2f} MBs")
+    count_column = get_count_column(txuut)
+    if count_column: print(f"SPAD[0] count in column {count_column}")
 
 # rx: XO : AO, DO        
 def config_rx_uut(rxuut, args):
@@ -197,6 +200,13 @@ def config_rx_uut(rxuut, args):
     rxuut.hudp.rx_port = args.port
     hudp_enable(rxuut)
 PCSEL = ("none", "pc")
+
+def get_count_column(uut, column_size=2):
+    ssb = int(uut.s0.ssb)
+    spadstart = int(uut.s0.spadstart)
+    if ssb == spadstart: return None
+    return spadstart // column_size
+
 
 def run_main(args):
     if args.gw is None:
