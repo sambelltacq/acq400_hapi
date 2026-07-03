@@ -103,6 +103,7 @@ if sys.version_info < (3, 0):
 
 def hudp_init(args, uut, ip):
     uut.hudp.tx_reset = 1
+    uut.hudp.hudp_gt_reset = 1
     uut.hudp.ip = ip
     uut.hudp.gw = args.gw
     uut.hudp.netmask = args.netmask
@@ -114,6 +115,7 @@ def hudp_init(args, uut, ip):
         uut.hudp.disco_en = 0
     
 def hudp_enable(uut):
+    uut.hudp.hudp_gt_reset = 0
     uut.hudp.tx_reset = 0
 
 def init_arp_req(uut):
