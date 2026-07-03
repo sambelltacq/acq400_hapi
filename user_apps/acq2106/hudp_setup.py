@@ -181,10 +181,8 @@ def config_tx_uut(txuut, args):
     tx_calc_pkt_sz = int(txuut.hudp.tx_calc_pkt_sz)      # actual tx pkt sz computed by FPGA logic.
     if tx_pkt_sz != tx_calc_pkt_sz:
         print("ERROR: set tx_pkt_size {} actual tx_pkt_size {}".format(tx_pkt_sz, tx_calc_pkt_sz))    
-    print("TX configured. ssb:{} spp:{} tx_pkt_size {}".format(tx_ssb, args.spp, tx_pkt_sz))
-    print(f"Expected Data rate: {txuut.get_data_rate() / args.hudp_decim:.2f} MBs")
-    count_column = get_count_column(txuut)
-    if count_column: print(f"SPAD[0] count in column {count_column}")
+    print("TX configured.")
+    print(f"ssb: {tx_ssb} spp: {args.spp} tx_pkt_size: {tx_pkt_sz} spad0: {get_count_column(txuut)} datarate: {txuut.get_data_rate() / args.hudp_decim:.2f} MBs")
 
 # rx: XO : AO, DO        
 def config_rx_uut(rxuut, args):
