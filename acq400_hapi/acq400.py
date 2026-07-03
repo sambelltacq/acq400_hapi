@@ -1792,6 +1792,10 @@ class Acq400:
             clk = self.s0.SIG_CLK_S1_FREQ
         return round(freq(clk), -3)
 
+    def get_data_rate(self):
+        """Return the data rate in MB"""
+        return (int(self.s0.ssb) * self.get_sample_rate()) / 1_000_000
+
 def pv(_pv):
     return _pv.split(" ")[1]
 
