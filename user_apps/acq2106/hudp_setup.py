@@ -103,6 +103,7 @@ if sys.version_info < (3, 0):
 
 def hudp_init(args, uut, ip):
     uut.hudp.tx_reset = 1
+    gt_reset(uut, 1)
     uut.hudp.ip = ip
     uut.hudp.gw = args.gw
     uut.hudp.netmask = args.netmask
@@ -114,6 +115,7 @@ def hudp_init(args, uut, ip):
         uut.hudp.disco_en = 0
     
 def hudp_enable(uut):
+    gt_reset(uut, 0)
     uut.hudp.tx_reset = 0
 
 def init_arp_req(uut):
@@ -122,7 +124,12 @@ def init_arp_req(uut):
 
     while uut.hudp.arp_mac_resp == '00:00:00:00:00:00:00:':
         print("waiting for arp")
-    
+
+def gt_reset(uut, state):
+    try:
+        uut.hudp.hudp_gt_reset = state
+    except: pass
+
 def ip_broadcast(args):
     ip_dest = args.rx_ip.split('.')
     nm = args.netmask.split('.')
@@ -174,7 +181,8 @@ def config_tx_uut(txuut, args):
     tx_calc_pkt_sz = int(txuut.hudp.tx_calc_pkt_sz)      # actual tx pkt sz computed by FPGA logic.
     if tx_pkt_sz != tx_calc_pkt_sz:
         print("ERROR: set tx_pkt_size {} actual tx_pkt_size {}".format(tx_pkt_sz, tx_calc_pkt_sz))    
-    print("TX configured. ssb:{} spp:{} tx_pkt_size {}".format(tx_ssb, args.spp, tx_pkt_sz))
+    print("TX configured.")
+    print(f"ssb: {tx_ssb} spp: {args.spp} tx_pkt_size: {tx_pkt_sz} spad0: {get_count_column(txuut)} datarate: {txuut.get_data_rate() / args.hudp_decim:.2f} MBs")
 
 # rx: XO : AO, DO        
 def config_rx_uut(rxuut, args):
@@ -190,6 +198,13 @@ def config_rx_uut(rxuut, args):
     rxuut.hudp.rx_port = args.port
     hudp_enable(rxuut)
 PCSEL = ("none", "pc")
+
+def get_count_column(uut, column_size=4):
+    ssb = int(uut.s0.ssb)
+    spadstart = int(uut.s0.spadstart)
+    if ssb == spadstart: return None
+    return spadstart // column_size
+
 
 def run_main(args):
     if args.gw is None:
