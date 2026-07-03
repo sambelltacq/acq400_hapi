@@ -201,7 +201,7 @@ def config_rx_uut(rxuut, args):
     hudp_enable(rxuut)
 PCSEL = ("none", "pc")
 
-def get_count_column(uut, column_size=2):
+def get_count_column(uut, column_size=4):
     ssb = int(uut.s0.ssb)
     spadstart = int(uut.s0.spadstart)
     if ssb == spadstart: return None
