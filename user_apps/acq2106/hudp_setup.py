@@ -103,7 +103,7 @@ if sys.version_info < (3, 0):
 
 def hudp_init(args, uut, ip):
     uut.hudp.tx_reset = 1
-    uut.hudp.hudp_gt_reset = 1
+    gt_reset(uut, 1)
     uut.hudp.ip = ip
     uut.hudp.gw = args.gw
     uut.hudp.netmask = args.netmask
@@ -115,7 +115,7 @@ def hudp_init(args, uut, ip):
         uut.hudp.disco_en = 0
     
 def hudp_enable(uut):
-    uut.hudp.hudp_gt_reset = 0
+    gt_reset(uut, 0)
     uut.hudp.tx_reset = 0
 
 def init_arp_req(uut):
@@ -124,7 +124,12 @@ def init_arp_req(uut):
 
     while uut.hudp.arp_mac_resp == '00:00:00:00:00:00:00:':
         print("waiting for arp")
-    
+
+def gt_reset(uut, state):
+    try:
+        uut.hudp.hudp_gt_reset = state
+    except: pass
+
 def ip_broadcast(args):
     ip_dest = args.rx_ip.split('.')
     nm = args.netmask.split('.')
