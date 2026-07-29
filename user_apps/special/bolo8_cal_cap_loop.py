@@ -23,6 +23,12 @@ Example::
     run 100 captures
     ./bolo8_cal_cap_loop.py --cal=0 --shots=100 acq2106_059
 
+    Run a cal with no flush
+    ./user_apps/special/bolo8_cal_cap_loop.py acq2106_123 --cal=2 --cap=0
+
+    Run a flush only
+    ./user_apps/special/bolo8_cal_cap_loop.py acq2106_123 --cal=3 --cap=0
+
 .. rst-class:: hidden
 
     sage: bolo8_cal_cap_loop.py [-h] [--cap CAP] [--cal CAL] [--post POST]
@@ -62,8 +68,8 @@ def set_next_shot(args, flavour, info):
     __shot += 1
     return __shot
 
-def run_cal1(uut, shot):
-    txt = uut.run_service(acq400_hapi.AcqPorts.BOLO8_CAL, eof="END")
+def run_cal1(uut, shot, port):
+    txt = uut.run_service(port, eof="END")
     logfile = "{}/cal_{}.log".format(os.getenv("{}_path".format(uut.uut), "."), shot)
     try:
         with open(logfile, 'w') as log:
@@ -85,8 +91,14 @@ def run_cal(args):
         u.s1.trg = "1,1,1" # Set soft trigger for calibration.
     shot = set_next_shot(args, odd, "Cal")
     # hmm, running the cal serialised?. not cool, parallelize me ..
+    port = acq400_hapi.AcqPorts.BOLO8_CAL
+    if args.cal == 2:
+        port = acq400_hapi.AcqPorts.BOLO8_CAL1
+        print('Warning: run filter flush before data capture with --cal=3')
+    if args.cal == 3:
+        port = acq400_hapi.AcqPorts.BOLO8_CAL2
     for u in uuts:
-        run_cal1(u, shot)
+        run_cal1(u, shot, port)
     # unfortunately this sleep seems to be necessary, else subsequent shot HANGS at 21760
     time.sleep(2)
     for u in uuts:
@@ -160,7 +172,7 @@ def run_main(args):
 def get_parser():
     parser = argparse.ArgumentParser(description='Bolo8 calibration and capture')
     parser.add_argument('--cap', default=1, type=int, help="capture")
-    parser.add_argument('--cal', default=1, type=int, help="calibrate")
+    parser.add_argument('--cal', default=1, type=int, help="calibrate 1: Calibrate and flush 2: Calibrate only 3: Flush only")
     parser.add_argument('--cc', default=None, type=int, help="--cc=1 sets cap=1,cal=0; --cc=2 => cap=0,cal=1; --cc=3 => cal=1,cap=1")
     parser.add_argument('--single_calibration_only', default=0, type=int, help="run one calibration shot only")
     parser.add_argument('--post', default=100000, help="post trigger length")
