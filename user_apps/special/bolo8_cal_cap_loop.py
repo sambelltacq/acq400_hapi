@@ -45,16 +45,10 @@ Example::
 
 """
 
-
-import sys
 import os
 import acq400_hapi
 import argparse
 import time
-USING_MDSPLUS=0
-
-if USING_MDSPLUS:
-    from MDSplus import *
 
 def odd(n):
     return n%2 == 1
@@ -63,28 +57,10 @@ def even(n):
     return n%2 == 0
 
 __shot = 0
-def null_set_next_shot(args, flavour, info):
+def set_next_shot(args, flavour, info):
     global __shot
     __shot += 1
     return __shot
-
-def mds_set_next_shot(args, flavour, info):
-    old_shots = [Tree.getCurrent(u) for u in args.uuts]
-    sn = max(old_shots) + 1
-    # this is only going to run once
-    while not flavour(sn):
-        sn += 1
-    for tree in args.uuts:
-        print("Setting {} for {} to shot {}".format(tree, info, sn))
-        Tree.setCurrent(tree, sn)
-        Tree(tree, -1).createPulse(sn)
-    return sn
-
-
-if USING_MDSPLUS:
-    set_next_shot = mds_set_next_shot
-else:
-    set_next_shot = null_set_next_shot
 
 def run_cal1(uut, shot):
     txt = uut.run_service(acq400_hapi.AcqPorts.BOLO8_CAL, eof="END")
@@ -100,42 +76,8 @@ def run_cal1(uut, shot):
             log.write(txt)
 
 
-# Singleton
-class FPGPIO_Strobe:
-    _instance = None
-    _old_value = None
-
-    def __init__(self, _uut):
-        self.uut = _uut
-        self.connect()
-
-    def connect(self):
-        self.uut.s0.SIG_EVENT_SRC_1 = 'HDMI_GPIO'
-        self.uut.s0.SIG_FP_GPIO = 'EVT1'
-        print("connect @@TODO gpg")
-        self.uut.s0.GPG_ENABLE = '0'
-        pass
-
-    def set_value(self, value):
-        if value > 1:
-            self.uut.s0.SIG_EVENT_SRC_1 = 'GPG'
-            self.uut.s0.GPG_ENABLE = '1'
-        else:
-            if self._old_value is not None and self._old_value > 1:
-                self.uut.s0.GPG_ENABLE = '0'
-            self.uut.s0.SIG_SYNC_BUS_OUT_GPIO = value
-        self._old_value = value
-
-    def instance(_uut):
-        if FPGPIO_Strobe._instance is None:
-            FPGPIO_Strobe._instance = FPGPIO_Strobe(_uut)
-        return FPGPIO_Strobe._instance
-
 def run_cal(args):
     uuts = args.uut_instances
-
-    if args.fpgpio_strobe is not None:
-        FPGPIO_Strobe.instance(uuts[0]).set_value(0)
 
     for u in uuts:
         # trg=1,1,1 external d1 RISING
@@ -158,9 +100,6 @@ def run_capture(args):
     uuts = args.uut_instances
     shot = set_next_shot(args, even, "Cap")
 
-    if args.fpgpio_strobe is not None:
-        FPGPIO_Strobe.instance(uuts[0]).set_value(args.fpgpio_strobe)
-
     for u in uuts:
         u.s0.transient = "POST={} SOFT_TRIGGER=0 DEMUX=0".format(args.post)
         if args.trg == "ext rising" or args.trg == "ext":
@@ -182,9 +121,6 @@ def run_capture(args):
 
     for u in uuts:
         u.statmon.wait_stopped()
-
-    if args.fpgpio_strobe is not None:
-        FPGPIO_Strobe.instance(uuts[0]).set_value(0)
 
     for u in uuts:
         u.s14.DSP_RESET = 1
@@ -232,7 +168,6 @@ def get_parser():
     parser.add_argument('--trg', default="int", help='trg "int|ext rising|falling"')
     parser.add_argument('--shots', default=1, type=int, help='set number of shots [1]')
     parser.add_argument('--active_chan', default=None, help='comma separated list of active channels, ; to split between uuts (because not all channels have foils)')
-    parser.add_argument('--fpgpio_strobe', default=None, type=int, help='custom lamp control: 0: OFF, 1:ON >1: flash at N Hz')
     parser.add_argument('uuts', nargs='+', help="uut list")
     return parser
 
